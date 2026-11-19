@@ -3,7 +3,7 @@ import { leerDoc } from "./api.js";
 
 // Datos generales del negocio, guardados en configuracion/negocio
 export const NEGOCIO_VACIO = {
-  nombre: "Restaurante La Avenida",
+  nombre: "Licorera Donde Arepa",
   direccion: "",
   cedulaJuridica: "",
   telefono: "",
