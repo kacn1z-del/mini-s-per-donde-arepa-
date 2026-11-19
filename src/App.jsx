@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "./firebase.js";
 import { ROL } from "./lib/constants.js";
 import { leerDoc, usePolling } from "./lib/api.js";
-import Salon from "./pages/Salon.jsx";
-import Comanda from "./pages/Comanda.jsx";
-import Cocina from "./pages/Cocina.jsx";
 import Caja from "./pages/Caja.jsx";
 import Productos from "./pages/Productos.jsx";
 import Compras from "./pages/Compras.jsx";
@@ -19,9 +16,7 @@ import ControlHorario from "./pages/ControlHorario.jsx";
 
 const VISTAS = {
   resumen: { label: "Resumen", icono: "◔", roles: [ROL.ADMIN] },
-  salon: { label: "Salón", icono: "⛶", roles: [ROL.ADMIN, ROL.MESERO, ROL.CAJA] },
   pedidos: { label: "Pedidos", icono: "☰", roles: [ROL.ADMIN, ROL.MESERO, ROL.CAJA] },
-  cocina: { label: "Cocina / Barra", icono: "◉", roles: [ROL.ADMIN, ROL.COCINA, ROL.BARRA] },
   caja: { label: "Caja", icono: "₡", roles: [ROL.ADMIN, ROL.CAJA] },
   productos: { label: "Menú", icono: "🍽", roles: [ROL.ADMIN] },
   compras: { label: "Compras", icono: "🧾", roles: [ROL.ADMIN] },
@@ -30,13 +25,6 @@ const VISTAS = {
   mantenimiento: { label: "Mantenimiento", icono: "⟳", roles: [ROL.ADMIN] },
   controlHorario: { label: "Control horario", icono: "⏱", roles: [ROL.ADMIN, ROL.MESERO, ROL.COCINA, ROL.BARRA, ROL.CAJA] },
   personal: { label: "Empleados", icono: "👥", roles: [ROL.ADMIN] },
-};
-
-// Qué zonas ve cada rol en la pantalla de cocina
-const ZONAS_POR_ROL = {
-  [ROL.COCINA]: ["cocina"],
-  [ROL.BARRA]: ["barra"],
-  [ROL.ADMIN]: ["cocina", "barra"],
 };
 
 function Login() {
@@ -116,10 +104,6 @@ function Pantalla({ children }) {
 export default function App() {
   const [user, setUser] = useState(undefined); // undefined = todavía cargando
   const [vista, setVista] = useState("resumen");
-  const [pedidoActivo, setPedidoActivo] = useState(null); // { pedidoId, mesaNumero }
-
-  // Estable para que Comanda no se vuelva a suscribir en cada render
-  const volver = useCallback(() => setPedidoActivo(null), []);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
@@ -175,10 +159,6 @@ export default function App() {
     ? vista
     : vistasPermitidas[0]?.[0];
 
-  if (pedidoActivo) {
-    return <Comanda pedidoId={pedidoActivo.pedidoId} onVolver={volver} staff={staff} />;
-  }
-
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -186,7 +166,7 @@ export default function App() {
           <img className="sidebar__logo" src="/logo.jpg" alt="Licorera Donde Arepa" />
           <div>
             <div className="sidebar__title">Donde Arepa</div>
-            <div className="sidebar__subtitle">POS Restaurante</div>
+            <div className="sidebar__subtitle">POS Minisúper</div>
           </div>
         </div>
 
@@ -214,13 +194,7 @@ export default function App() {
       <main className="app-main">
         <div className="contenido stack">
           {vistaActual === "resumen" && <Resumen />}
-          {vistaActual === "salon" && (
-            <Salon staff={staff} onAbrirPedido={(p) => setPedidoActivo(p)} />
-          )}
-          {vistaActual === "pedidos" && (
-            <Pedidos onAbrirPedido={(p) => setPedidoActivo(p)} />
-          )}
-          {vistaActual === "cocina" && <Cocina zonas={ZONAS_POR_ROL[staff.rol] || []} />}
+          {vistaActual === "pedidos" && <Pedidos />}
           {vistaActual === "caja" && <Caja staff={staff} />}
           {vistaActual === "productos" && <Productos />}
           {vistaActual === "compras" && <Compras staff={staff} />}
