@@ -4,6 +4,15 @@ import { ESTADO_MESA, ESTADO_PEDIDO, METODOS_PAGO } from "../lib/constants.js";
 import { colones } from "../lib/format.js";
 import Ticket from "./Ticket.jsx";
 
+// Caja de este dispositivo: cada cobro queda etiquetado con su caja para el cierre
+function cajaDeEsteDispositivo() {
+  try {
+    return localStorage.getItem("caja_id") || null;
+  } catch {
+    return null;
+  }
+}
+
 function sumar(items) {
   return items.reduce((s, i) => s + (Number(i.precio) || 0) * (Number(i.cantidad) || 0), 0);
 }
@@ -99,6 +108,7 @@ export default function Cobro({ pedido, productos, onCerrado, onCancelar }) {
             pagos: pagosCobrados,
             creadoEn: ahora(),
             cobradoEn: ahora(),
+            cajaId: cajaDeEsteDispositivo(),
             cobroParcialDe: pedido.id,
           }),
           actualizar("pedidos", pedido.id, {
@@ -114,6 +124,7 @@ export default function Cobro({ pedido, productos, onCerrado, onCancelar }) {
             total,
             pagos: pagosCobrados,
             cobradoEn: ahora(),
+            cajaId: cajaDeEsteDispositivo(),
           }),
           actualizar("mesas", pedido.mesaId, {
             estado: ESTADO_MESA.LIBRE,
