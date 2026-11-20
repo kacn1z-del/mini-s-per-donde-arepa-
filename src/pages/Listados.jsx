@@ -119,10 +119,10 @@ const REPORTES = [
       const vendidos = new Set();
       for (const p of cobrados) for (const i of p.items || []) vendidos.add(i.productoId);
       return {
-        columnas: ["Producto", "Zona"],
+        columnas: ["Producto"],
         filas: productos
           .filter((p) => p.activo !== false && p.tipo !== TIPO_PRODUCTO.INGREDIENTE && !vendidos.has(p.id))
-          .map((p) => [p.nombre, p.zona || "—"]),
+          .map((p) => [p.nombre]),
       };
     },
   },
@@ -147,10 +147,9 @@ const REPORTES = [
     grupo: "Control",
     label: "Ventas eliminadas",
     armar: ({ anulados }) => ({
-      columnas: ["Fecha", "Mesa", "Empleado", "Motivo", "Borrada por", "Total"],
+      columnas: ["Fecha", "Empleado", "Motivo", "Borrada por", "Total"],
       filas: anulados.map((p) => [
         dia(p.anuladoEn),
-        p.mesaNumero ?? "—",
         p.empleadoNombre || "—",
         p.motivoAnulacion || "—",
         p.anuladoPorNombre || "—",
@@ -188,22 +187,6 @@ const REPORTES = [
       ]),
     }),
   },
-  {
-    id: "reservas",
-    grupo: "Control",
-    label: "Reservas",
-    armar: ({ reservas }) => ({
-      columnas: ["Fecha", "Hora", "Nombre", "Personas", "Mesa", "Estado"],
-      filas: reservas.map((r) => [
-        dia(r.fechaHora),
-        horaCorta(r.fechaHora),
-        r.nombre,
-        r.personas,
-        r.mesaNumero ?? "—",
-        r.estado === "activa" ? "Activa" : "Cancelada",
-      ]),
-    }),
-  },
 ];
 
 export default function Listados() {
@@ -223,11 +206,10 @@ export default function Listados() {
     try {
       const d0 = new Date(desde + "T00:00:00");
       const d1 = new Date(hasta + "T23:59:59.999");
-      const [pedidos, anulados, cierres, reservas, fichajes, productos] = await Promise.all([
+      const [pedidos, anulados, cierres, fichajes, productos] = await Promise.all([
         consultar("pedidos", { where: [["cobradoEn", ">=", d0]] }),
         consultar("pedidos", { where: [["estado", "==", "anulado"]] }),
         consultar("cierres", { orden: [["fecha", "desc"]], limite: 300 }),
-        consultar("reservas"),
         consultar("fichajes", { orden: [["fecha", "desc"]], limite: 1000 }),
         consultar("productos"),
       ]);
@@ -235,7 +217,6 @@ export default function Listados() {
         cobrados: pedidos.filter((p) => p.estado === "cobrado" && enRango(p.cobradoEn, d0, d1)),
         anulados: anulados.filter((p) => !p.unidoA && enRango(p.anuladoEn, d0, d1)),
         cierres: cierres.filter((c) => enRango(c.fecha, d0, d1)),
-        reservas: reservas.filter((r) => enRango(r.fechaHora, d0, d1)),
         fichajes: fichajes.filter((f) => enRango(f.fecha, d0, d1)),
         productos,
       });
