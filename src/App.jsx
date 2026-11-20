@@ -7,7 +7,6 @@ import Caja from "./pages/Caja.jsx";
 import Productos from "./pages/Productos.jsx";
 import Compras from "./pages/Compras.jsx";
 import Resumen from "./pages/Resumen.jsx";
-import Pedidos from "./pages/Pedidos.jsx";
 import Personal from "./pages/Personal.jsx";
 import Listados from "./pages/Listados.jsx";
 import Configuracion from "./pages/Configuracion.jsx";
@@ -16,14 +15,13 @@ import ControlHorario from "./pages/ControlHorario.jsx";
 
 const VISTAS = {
   resumen: { label: "Resumen", icono: "◔", roles: [ROL.ADMIN] },
-  pedidos: { label: "Pedidos", icono: "☰", roles: [ROL.ADMIN, ROL.MESERO, ROL.CAJA] },
   caja: { label: "Caja", icono: "₡", roles: [ROL.ADMIN, ROL.CAJA] },
   productos: { label: "Menú", icono: "🍽", roles: [ROL.ADMIN] },
   compras: { label: "Compras", icono: "🧾", roles: [ROL.ADMIN] },
   listados: { label: "Listados", icono: "▤", roles: [ROL.ADMIN] },
   configuracion: { label: "Configuración", icono: "⚙", roles: [ROL.ADMIN] },
   mantenimiento: { label: "Mantenimiento", icono: "⟳", roles: [ROL.ADMIN] },
-  controlHorario: { label: "Control horario", icono: "⏱", roles: [ROL.ADMIN, ROL.MESERO, ROL.COCINA, ROL.BARRA, ROL.CAJA] },
+  controlHorario: { label: "Control horario", icono: "⏱", roles: [ROL.ADMIN, ROL.CAJA] },
   personal: { label: "Empleados", icono: "👥", roles: [ROL.ADMIN] },
 };
 
@@ -194,7 +192,6 @@ export default function App() {
       <main className="app-main">
         <div className="contenido stack">
           {vistaActual === "resumen" && <Resumen />}
-          {vistaActual === "pedidos" && <Pedidos />}
           {vistaActual === "caja" && <Caja staff={staff} />}
           {vistaActual === "productos" && <Productos />}
           {vistaActual === "compras" && <Compras staff={staff} />}
