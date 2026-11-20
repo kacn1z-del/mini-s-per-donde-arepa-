@@ -1,29 +1,14 @@
 import { useMemo } from "react";
 import { consultar, usePolling } from "../lib/api.js";
-import { ESTADO_MESA, ESTADO_PEDIDO, METODOS_PAGO } from "../lib/constants.js";
+import { ESTADO_PEDIDO, METODOS_PAGO } from "../lib/constants.js";
 import { colones, inicioDelDia } from "../lib/format.js";
 
-const ABIERTOS = [ESTADO_PEDIDO.ABIERTO, ESTADO_PEDIDO.EN_COCINA, ESTADO_PEDIDO.LISTO];
-
 export default function Resumen() {
-  // Pedidos cobrados desde medianoche
+  // Ventas cobradas desde medianoche
   const cobradosQ = usePolling(
     () => consultar("pedidos", { where: [["cobradoEn", ">=", inicioDelDia()]] }),
     [],
     20000
-  );
-
-  // Pedidos que siguen en curso (sin importar la fecha)
-  const abiertosQ = usePolling(
-    () => consultar("pedidos", { where: [["estado", "in", ABIERTOS]] }),
-    [],
-    10000
-  );
-
-  const mesasQ = usePolling(
-    () => consultar("mesas", { where: [["estado", "==", ESTADO_MESA.OCUPADA]] }),
-    [],
-    10000
   );
 
   const stats = useMemo(() => {
@@ -56,21 +41,13 @@ export default function Resumen() {
     };
   }, [cobradosQ.datos]);
 
-  const porEstado = useMemo(() => {
-    const conteo = { [ESTADO_PEDIDO.ABIERTO]: 0, [ESTADO_PEDIDO.EN_COCINA]: 0, [ESTADO_PEDIDO.LISTO]: 0 };
-    for (const p of abiertosQ.datos || []) {
-      if (conteo[p.estado] !== undefined) conteo[p.estado] += 1;
-    }
-    return conteo;
-  }, [abiertosQ.datos]);
-
   const cargando = cobradosQ.datos === null && !cobradosQ.error;
 
   return (
     <section className="stack">
       <div>
         <h2>Resumen del día</h2>
-        <p>Lo cobrado desde hoy a las 00:00 y el estado del local en este momento.</p>
+        <p>Lo cobrado desde hoy a las 00:00.</p>
       </div>
 
       {cargando && <p className="cargando">Cargando resumen...</p>}
@@ -82,37 +59,13 @@ export default function Resumen() {
           <span className="metrica__valor">{colones(stats.totalVentas)}</span>
         </div>
         <div className="metrica">
-          <span className="metrica__label">Pedidos cobrados</span>
+          <span className="metrica__label">Ventas cobradas</span>
           <span className="metrica__valor">{stats.cantidad}</span>
         </div>
         <div className="metrica">
-          <span className="metrica__label">Ticket promedio</span>
+          <span className="metrica__label">Venta promedio</span>
           <span className="metrica__valor">{colones(stats.ticketPromedio)}</span>
         </div>
-        <div className="metrica">
-          <span className="metrica__label">Mesas ocupadas</span>
-          <span className="metrica__valor">{mesasQ.datos?.length ?? "—"}</span>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>En curso ahora</h3>
-        <table className="tabla">
-          <tbody>
-            <tr>
-              <td>Abiertos</td>
-              <td>{porEstado[ESTADO_PEDIDO.ABIERTO]}</td>
-            </tr>
-            <tr>
-              <td>En cocina / barra</td>
-              <td>{porEstado[ESTADO_PEDIDO.EN_COCINA]}</td>
-            </tr>
-            <tr>
-              <td>Listos para servir</td>
-              <td>{porEstado[ESTADO_PEDIDO.LISTO]}</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <div className="card">
