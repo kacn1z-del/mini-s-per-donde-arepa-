@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { actualizar, ahora, confirmar, consultar, crear, incremento, nuevoIdDoc, usePolling } from "../lib/api.js";
+import { actualizar, ahora, confirmar, consultar, crear, incremento, leerDoc, nuevoIdDoc, usePolling } from "../lib/api.js";
+import { emitirComprobante, errorCedula, TIPOS_CEDULA } from "../lib/facturacion.js";
 import { ESTADO_PEDIDO, METODOS_PAGO } from "../lib/constants.js";
 import { colones, nuevoId } from "../lib/format.js";
 import Ticket, { subtotalItem, textoCantidad } from "./Ticket.jsx";
@@ -11,6 +12,8 @@ const ESPERA_ESCANEO_MS = 150;
 
 // Billetes para cobrar rápido en efectivo
 const BILLETES = [1000, 2000, 5000, 10000, 20000];
+
+const CLIENTE_VACIO = { factura: false, tipo: "01", cedula: "", nombre: "", correo: "" };
 
 const normalizar = (texto) => String(texto || "").trim().toLowerCase();
 const numero = (valor) => Number(String(valor ?? "").replace(",", ".")) || 0;
@@ -38,12 +41,17 @@ export default function Venta({ caja, turno, staff, onVendido }) {
   const [metodo, setMetodo] = useState("efectivo");
   const [recibido, setRecibido] = useState("");
   const [pagosMixtos, setPagosMixtos] = useState([]);
+  const [cliente, setCliente] = useState(CLIENTE_VACIO);
   const [guardando, setGuardando] = useState(false);
-  const [ticket, setTicket] = useState(null); // { venta, fecha }
+  const [ticket, setTicket] = useState(null); // { venta, fecha, factura }
   const [error, setError] = useState("");
   const escaner = useRef(null);
   const campoPeso = useRef(null);
   const temporizador = useRef(null);
+
+  // ¿Está encendida la facturación electrónica? (la enciende el admin en Facturación)
+  const facturacionQ = usePolling(() => leerDoc("configuracion", "facturacion"), [], 60000);
+  const facturacionActiva = !!facturacionQ.datos?.activa;
 
   const productosQ = usePolling(() => consultar("productos", { orden: [["nombre"]] }), [], 30000);
   const productos = useMemo(
@@ -222,6 +230,7 @@ export default function Venta({ caja, turno, staff, onVendido }) {
     if (!carrito.length) return setError("Escaneá al menos un producto.");
     setMetodo("efectivo");
     setRecibido("");
+    setCliente(CLIENTE_VACIO);
     setPagosMixtos([
       { metodo: "efectivo", monto: "" },
       { metodo: "tarjeta", monto: "" },
@@ -250,9 +259,29 @@ export default function Venta({ caja, turno, staff, onVendido }) {
     listo = total > 0;
   }
 
+  // Datos del cliente para la factura electrónica (opcionales)
+  function datosCliente() {
+    const correo = cliente.correo.trim().toLowerCase();
+    if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return { error: "El correo del cliente no es válido." };
+    if (!cliente.factura) return { valor: correo ? { correo } : null };
+    const problema = errorCedula(cliente.tipo, cliente.cedula);
+    if (problema) return { error: problema };
+    if (!cliente.nombre.trim()) return { error: "Poné el nombre del cliente para la factura." };
+    return {
+      valor: {
+        tipo: cliente.tipo,
+        cedula: cliente.cedula.replace(/\D/g, ""),
+        nombre: cliente.nombre.trim(),
+        correo: correo || null,
+      },
+    };
+  }
+
   async function confirmarCobro() {
     if (!listo || guardando) return;
     setError("");
+    const datos = facturacionActiva ? datosCliente() : { valor: null };
+    if (datos.error) return setError(datos.error);
     setGuardando(true);
 
     const idVenta = nuevoIdDoc();
@@ -270,6 +299,7 @@ export default function Venta({ caja, turno, staff, onVendido }) {
       turnoId: turno.id,
       empleadoUid: staff?.uid ?? null,
       empleadoNombre: staff?.nombre || turno.empleadoNombre || "",
+      cliente: datos.valor,
       creadoEn: ahora(),
       cobradoEn: ahora(),
     };
@@ -301,7 +331,15 @@ export default function Venta({ caja, turno, staff, onVendido }) {
 
     try {
       await confirmar(escrituras);
-      setTicket({ venta, fecha: new Date() });
+      setTicket({ venta: { ...venta, id: idVenta }, fecha: new Date(), factura: facturacionActiva ? { estado: "emitiendo" } : null });
+      if (facturacionActiva) {
+        // Se envía a Hacienda sin hacer esperar a la cajera; el comprobante se actualiza al llegar la respuesta
+        const actualizarFactura = (factura) =>
+          setTicket((t) => (t && t.venta.id === idVenta ? { ...t, factura } : t));
+        emitirComprobante(idVenta)
+          .then(actualizarFactura)
+          .catch((e) => actualizarFactura({ estado: "error", error: e.message }));
+      }
       setCarrito([]);
       setCobrando(false);
       setResultados([]);
@@ -536,6 +574,46 @@ export default function Venta({ caja, turno, staff, onVendido }) {
               <p>Confirmá que el pago de {colones(total)} entró antes de cobrar.</p>
             )}
 
+            {facturacionActiva && (
+              <div className="stack" style={{ gap: 8 }}>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={cliente.factura}
+                    onChange={(e) => setCliente({ ...cliente, factura: e.target.checked })}
+                  />
+                  Factura a nombre del cliente (con cédula)
+                </label>
+                {cliente.factura && (
+                  <div className="formulario">
+                    <select value={cliente.tipo} onChange={(e) => setCliente({ ...cliente, tipo: e.target.value })}>
+                      {TIPOS_CEDULA.map((t) => (
+                        <option key={t.id} value={t.id}>{t.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      inputMode="numeric"
+                      placeholder="Número de identificación, sin guiones"
+                      value={cliente.cedula}
+                      onChange={(e) => setCliente({ ...cliente, cedula: e.target.value })}
+                    />
+                    <input
+                      placeholder="Nombre o razón social"
+                      value={cliente.nombre}
+                      onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })}
+                    />
+                  </div>
+                )}
+                <input
+                  type="email"
+                  autoCapitalize="none"
+                  placeholder="Correo del cliente para enviarle el comprobante (opcional)"
+                  value={cliente.correo}
+                  onChange={(e) => setCliente({ ...cliente, correo: e.target.value })}
+                />
+              </div>
+            )}
+
             {error && <p className="error">{error}</p>}
 
             <div className="acciones">
@@ -553,7 +631,7 @@ export default function Venta({ caja, turno, staff, onVendido }) {
 
       {ticket &&
         createPortal(
-          <Ticket venta={ticket.venta} fecha={ticket.fecha} onCerrar={siguienteCliente} />,
+          <Ticket venta={ticket.venta} fecha={ticket.fecha} factura={ticket.factura} onCerrar={siguienteCliente} />,
           document.body
         )}
     </div>
