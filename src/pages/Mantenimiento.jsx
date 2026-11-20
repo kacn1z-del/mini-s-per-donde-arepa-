@@ -5,14 +5,12 @@ import { ESTADO_PEDIDO } from "../lib/constants.js";
 // Colecciones que entran en el respaldo
 const COLECCIONES = [
   "productos",
-  "mesas",
-  "salones",
-  "observaciones",
   "pedidos",
-  "reservas",
   "movimientos",
   "compras",
   "cierres",
+  "cajas",
+  "turnos",
   "fichajes",
   "empleados",
   "configuracion",
@@ -85,7 +83,7 @@ export default function Mantenimiento() {
         return cerrado && creado && creado < corte;
       });
       setCandidatos(viejos);
-      if (!viejos.length) setMensaje("No hay pedidos cobrados o anulados antes de esa fecha.");
+      if (!viejos.length) setMensaje("No hay ventas cobradas o anuladas antes de esa fecha.");
     } catch (e) {
       setError("No se pudo buscar: " + e.message);
     } finally {
@@ -97,7 +95,7 @@ export default function Mantenimiento() {
     setError("");
     setMensaje("");
     if (!respaldoHecho) return setError("Primero descargá el respaldo en esta sesión.");
-    if (!candidatos || !candidatos.length) return setError("Buscá los pedidos primero.");
+    if (!candidatos || !candidatos.length) return setError("Buscá las ventas primero.");
 
     setBorrando(true);
     try {
@@ -105,7 +103,7 @@ export default function Mantenimiento() {
         const lote = candidatos.slice(i, i + LOTE);
         await confirmar(lote.map((p) => borrar("pedidos", p.id)));
       }
-      setMensaje(`Se borraron ${candidatos.length} pedidos.`);
+      setMensaje(`Se borraron ${candidatos.length} ventas.`);
       setCandidatos(null);
     } catch (e) {
       setError("Se detuvo la limpieza: " + e.message);
@@ -118,20 +116,20 @@ export default function Mantenimiento() {
     <section className="stack">
       <div>
         <h2>Mantenimiento</h2>
-        <p>Respaldo de datos y limpieza de pedidos viejos. Solo administrador.</p>
+        <p>Respaldo de datos y limpieza de ventas viejas. Solo administrador.</p>
       </div>
 
       <div className="card">
         <h3>1. Respaldo</h3>
-        <p>Descarga un archivo JSON con productos, mesas, pedidos, cierres, empleados, fichajes y configuración.</p>
+        <p>Descarga un archivo JSON con productos, ventas, cierres, cajas, turnos, empleados, fichajes y configuración.</p>
         <button className="btn primary bloque" disabled={descargando} onClick={descargarRespaldo}>
           {descargando ? "Preparando respaldo..." : "Descargar respaldo"}
         </button>
       </div>
 
       <div className="card">
-        <h3>2. Limpiar pedidos viejos</h3>
-        <p>Borra solo pedidos cobrados o anulados creados antes de la fecha. Requiere haber descargado el respaldo en esta sesión.</p>
+        <h3>2. Limpiar ventas viejas</h3>
+        <p>Borra solo ventas cobradas o anuladas creadas antes de la fecha. Requiere haber descargado el respaldo en esta sesión.</p>
 
         <label>
           <span className="check">Fecha de corte (se borra lo anterior)</span>
@@ -139,14 +137,14 @@ export default function Mantenimiento() {
         </label>
 
         <button className="btn bloque" disabled={buscando || borrando} onClick={buscarViejos}>
-          {buscando ? "Buscando..." : "Buscar pedidos"}
+          {buscando ? "Buscando..." : "Buscar ventas"}
         </button>
 
         {candidatos && candidatos.length > 0 && (
           <>
-            <p>Se encontraron {candidatos.length} pedidos para borrar.</p>
+            <p>Se encontraron {candidatos.length} ventas para borrar.</p>
             <button className="btn primary bloque" disabled={!respaldoHecho || borrando} onClick={limpiarViejos}>
-              {borrando ? "Borrando..." : `Borrar ${candidatos.length} pedidos`}
+              {borrando ? "Borrando..." : `Borrar ${candidatos.length} ventas`}
             </button>
           </>
         )}
