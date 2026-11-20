@@ -5,6 +5,10 @@ import { ESTADO_PEDIDO, METODOS_PAGO } from "../lib/constants.js";
 import { colones, nuevoId } from "../lib/format.js";
 import Ticket, { subtotalItem, textoCantidad } from "./Ticket.jsx";
 
+// Espera después de la última tecla antes de agregar solo un código conocido.
+// El lector escribe todo el código en pocos milisegundos; así no se corta un código largo.
+const ESPERA_ESCANEO_MS = 150;
+
 // Billetes para cobrar rápido en efectivo
 const BILLETES = [1000, 2000, 5000, 10000, 20000];
 
@@ -39,6 +43,7 @@ export default function Venta({ caja, turno, staff, onVendido }) {
   const [error, setError] = useState("");
   const escaner = useRef(null);
   const campoPeso = useRef(null);
+  const temporizador = useRef(null);
 
   const productosQ = usePolling(() => consultar("productos", { orden: [["nombre"]] }), [], 30000);
   const productos = useMemo(
@@ -67,6 +72,22 @@ export default function Venta({ caja, turno, staff, onVendido }) {
   useEffect(() => {
     if (pesando) campoPeso.current?.focus();
   }, [pesando]);
+
+  useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  // Si lo escrito es un código de barras registrado, se agrega solo, sin tocar Agregar ni Enter
+  function alEscribir(valor) {
+    setEntrada(valor);
+    clearTimeout(temporizador.current);
+    const codigo = valor.replace(/\s/g, "");
+    if (!/^\d{6,}$/.test(codigo)) return;
+    const producto = porCodigo[codigo];
+    if (!producto) return;
+    temporizador.current = setTimeout(() => {
+      setEntrada("");
+      agregar(producto, 0);
+    }, ESPERA_ESCANEO_MS);
+  }
 
   function enfocarEscaner() {
     setTimeout(() => escaner.current?.focus(), 0);
@@ -130,6 +151,7 @@ export default function Venta({ caja, turno, staff, onVendido }) {
   // "3*código" agrega 3 unidades de una vez.
   function alEscanear(e) {
     e.preventDefault();
+    clearTimeout(temporizador.current);
     setError("");
     let texto = entrada.trim();
     setEntrada("");
@@ -311,13 +333,15 @@ export default function Venta({ caja, turno, staff, onVendido }) {
           inputMode="search"
           placeholder="Escanear código o escribir nombre"
           value={entrada}
-          onChange={(e) => setEntrada(e.target.value)}
+          onChange={(e) => alEscribir(e.target.value)}
           disabled={cobrando || !!pesando || !!ticket}
         />
         <button className="btn primary" disabled={cobrando || !!pesando || !!ticket}>Agregar</button>
       </form>
       <p style={{ marginTop: 6 }}>
-        <small>Para varias unidades: 6*código. Lo que se vende por kilo pide el peso.</small>
+        <small>
+          Al escanear se agrega solo. Para varias unidades: 6*código y Enter. Lo que se vende por kilo pide el peso.
+        </small>
       </p>
 
       {productosQ.error && <p className="error">{productosQ.error}</p>}
