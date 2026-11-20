@@ -10,7 +10,7 @@ import {
   usePolling,
 } from "../lib/api.js";
 import { CATALOGO_BASE } from "../lib/catalogoBase.js";
-import { COLORES_PRODUCTO, TIPO_PRODUCTO } from "../lib/constants.js";
+import { COLORES_PRODUCTO, TARIFAS_IMPUESTO, TIPO_PRODUCTO } from "../lib/constants.js";
 import { colones, horaCorta } from "../lib/format.js";
 
 const TIPOS_MOVIMIENTO = [
@@ -110,6 +110,8 @@ export default function Inventario({ staff }) {
       precio: numero(p.precio) > 0 ? String(p.precio) : "",
       stockActual: p.controlaStock ? String(numero(p.stockActual)) : "",
       stockMinimo: p.controlaStock ? String(numero(p.stockMinimo)) : "",
+      cabys: p.cabys || "",
+      tarifaCodigo: p.tarifaCodigo || "08",
     });
     setCodigoNuevo("");
     setCantidad("");
@@ -172,6 +174,9 @@ export default function Inventario({ staff }) {
     const repetido = codigo && codigoRepetido(codigo, seleccionado.id);
     if (repetido) return setError(`Ese código ya lo tiene "${repetido.nombre}".`);
 
+    const cabys = String(edicion.cabys || "").replace(/\D/g, "");
+    if (cabys && cabys.length !== 13) return setError("El código CABYS lleva 13 dígitos.");
+
     const precio = Number(edicion.precio || 0);
     if (!Number.isFinite(precio) || precio < 0) return setError("Poné un precio válido.");
 
@@ -190,6 +195,8 @@ export default function Inventario({ staff }) {
       codigoBarras: codigo,
       precio,
       stockMinimo: minimo,
+      cabys,
+      tarifaCodigo: edicion.tarifaCodigo || "08",
     };
     const escrituras = [];
 
@@ -567,6 +574,23 @@ export default function Inventario({ staff }) {
             <label>
               <span className="check">Unidad (Unidades, Kg, Litros…)</span>
               <input value={edicion.unidad} onChange={(e) => editar("unidad", e.target.value)} />
+            </label>
+            <label>
+              <span className="check">Código CABYS (13 dígitos, para Hacienda)</span>
+              <input
+                inputMode="numeric"
+                placeholder="Ej. 2403000000000"
+                value={edicion.cabys}
+                onChange={(e) => editar("cabys", e.target.value)}
+              />
+            </label>
+            <label>
+              <span className="check">IVA incluido en el precio</span>
+              <select value={edicion.tarifaCodigo} onChange={(e) => editar("tarifaCodigo", e.target.value)}>
+                {TARIFAS_IMPUESTO.map((t) => (
+                  <option key={t.codigo} value={t.codigo}>{t.label}</option>
+                ))}
+              </select>
             </label>
           </div>
           <div className="acciones">
