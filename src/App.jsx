@@ -13,6 +13,7 @@ import Listados from "./pages/Listados.jsx";
 import Configuracion from "./pages/Configuracion.jsx";
 import Mantenimiento from "./pages/Mantenimiento.jsx";
 import ControlHorario from "./pages/ControlHorario.jsx";
+import Usuarios from "./pages/Usuarios.jsx";
 
 const VISTAS = {
   resumen: { label: "Resumen", icono: "◔", roles: [ROL.ADMIN] },
@@ -24,6 +25,7 @@ const VISTAS = {
   configuracion: { label: "Configuración", icono: "⚙", roles: [ROL.ADMIN] },
   mantenimiento: { label: "Mantenimiento", icono: "⟳", roles: [ROL.ADMIN] },
   controlHorario: { label: "Control horario", icono: "⏱", roles: [ROL.ADMIN, ROL.CAJA] },
+  usuarios: { label: "Usuarios", icono: "🔑", roles: [ROL.ADMIN] },
   personal: { label: "Empleados", icono: "👥", roles: [ROL.ADMIN] },
 };
 
@@ -202,6 +204,7 @@ export default function App() {
           {vistaActual === "configuracion" && <Configuracion />}
           {vistaActual === "mantenimiento" && <Mantenimiento />}
           {vistaActual === "controlHorario" && <ControlHorario staff={staff} />}
+          {vistaActual === "usuarios" && <Usuarios staff={staff} />}
           {vistaActual === "personal" && <Personal staff={staff} />}
         </div>
       </main>
