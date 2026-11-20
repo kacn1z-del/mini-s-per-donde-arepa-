@@ -5,6 +5,7 @@ import { colones } from "../lib/format.js";
 
 const FORM_VACIO = {
   nombre: "",
+  codigoBarras: "",
   categoria: "",
   precio: "",
   posicion: "",
@@ -39,6 +40,7 @@ export default function Productos() {
     setForm({
       ...FORM_VACIO,
       nombre: p.nombre || "",
+      codigoBarras: p.codigoBarras || "",
       categoria: p.categoria || "",
       precio: String(p.precio ?? ""),
       posicion: String(p.posicion ?? ""),
@@ -61,8 +63,17 @@ export default function Productos() {
   async function guardarProducto(e) {
     e.preventDefault();
     setMsg("");
+    const codigoBarras = form.codigoBarras.replace(/\s/g, "");
+    const repetido = codigoBarras
+      ? productos.find((p) => p.id !== editandoId && String(p.codigoBarras || "") === codigoBarras)
+      : null;
+    if (repetido) {
+      setMsg(`Error: ese código de barras ya lo tiene "${repetido.nombre}".`);
+      return;
+    }
     const data = {
       nombre: form.nombre.trim(),
+      codigoBarras,
       categoria: form.categoria.trim() || "Otros",
       precio: Number(form.precio) || 0,
       tipo: TIPO_PRODUCTO.VENTA,
@@ -102,13 +113,23 @@ export default function Productos() {
 
   return (
     <div className="stack">
-      {msg && <p className="ok">{msg}</p>}
+      {msg && <p className={msg.startsWith("Error") ? "error" : "ok"}>{msg}</p>}
 
       <section className="card">
         <h2>{editandoId ? "Editar producto" : "Nuevo producto"}</h2>
         <form onSubmit={guardarProducto} className="stack">
           <div className="formulario">
             <input placeholder="Nombre" value={form.nombre} onChange={(e) => set("nombre", e.target.value)} required />
+            <input
+              inputMode="numeric"
+              placeholder="Código de barras (escanear o escribir)"
+              value={form.codigoBarras}
+              onChange={(e) => set("codigoBarras", e.target.value)}
+              onKeyDown={(e) => {
+                // El lector manda Enter al final; no debe guardar el formulario
+                if (e.key === "Enter") e.preventDefault();
+              }}
+            />
             <input placeholder="Categoría (ej. Licores, Cervezas, Abarrotes)" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} />
             <input type="number" min="0" placeholder="Precio ₡" value={form.precio} onChange={(e) => set("precio", e.target.value)} required />
             <input type="number" placeholder="Orden en lista" value={form.posicion} onChange={(e) => set("posicion", e.target.value)} />
@@ -163,6 +184,7 @@ export default function Productos() {
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Código</th>
               <th>Precio</th>
               <th>Stock</th>
               <th></th>
@@ -177,6 +199,7 @@ export default function Productos() {
                     <span className="color-dot" style={{ background: p.color || "#8f7c68" }} />
                     {p.nombre}
                   </td>
+                  <td>{p.codigoBarras || "—"}</td>
                   <td>{colones(p.precio)}</td>
                   <td className={bajo ? "error" : ""}>{p.controlaStock ? p.stockActual : "—"}</td>
                   <td>
