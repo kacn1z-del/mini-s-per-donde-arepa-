@@ -16,7 +16,7 @@ import ControlHorario from "./pages/ControlHorario.jsx";
 const VISTAS = {
   resumen: { label: "Resumen", icono: "◔", roles: [ROL.ADMIN] },
   caja: { label: "Caja", icono: "₡", roles: [ROL.ADMIN, ROL.CAJA] },
-  productos: { label: "Menú", icono: "🍽", roles: [ROL.ADMIN] },
+  productos: { label: "Productos", icono: "📦", roles: [ROL.ADMIN] },
   compras: { label: "Compras", icono: "🧾", roles: [ROL.ADMIN] },
   listados: { label: "Listados", icono: "▤", roles: [ROL.ADMIN] },
   configuracion: { label: "Configuración", icono: "⚙", roles: [ROL.ADMIN] },
