@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { auth } from "../firebase.js";
 import { nuevoId } from "./format.js";
 
-const PROYECTO = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+// trim(): un espacio pegado al final de la variable en Vercel hace que Firestore rechace las escrituras
+const PROYECTO = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || "").trim();
+const API_KEY = String(import.meta.env.VITE_FIREBASE_API_KEY || "").trim();
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROYECTO}/databases/(default)`;
 const RAIZ = `projects/${PROYECTO}/databases/(default)/documents`;
 
