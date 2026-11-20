@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { actualizar, ahora, confirmar, consultar, crear, nuevoIdDoc, usePolling } from "../lib/api.js";
 import { DENOMINACIONES, METODOS_PAGO, MONEDAS, ROL } from "../lib/constants.js";
 import { colones } from "../lib/format.js";
+import Venta from "../components/Venta.jsx";
 
 const SIMBOLO = { CRC: "₡", USD: "US$", EUR: "€" };
 const CLAVE_CAJA = "caja_id";
@@ -26,7 +27,8 @@ function cajaDeEsteDispositivo() {
 }
 
 // Pantalla de caja: el cajero elige su caja, abre turno con fondo inicial,
-// ve sus ventas y cierra con el conteo. Cada caja tiene su propio cierre.
+// cobra con el lector de códigos, ve sus ventas y cierra con el conteo.
+// Cada caja tiene su propio cierre.
 export default function Caja({ staff }) {
   const esAdmin = staff?.rol === ROL.ADMIN;
   const [cajaId, setCajaId] = useState(cajaDeEsteDispositivo);
@@ -37,6 +39,7 @@ export default function Caja({ staff }) {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [verCierre, setVerCierre] = useState(false);
 
   const cajasQ = usePolling(() => consultar("cajas", { orden: [["numero"]] }), [], 60000);
   const todasCajas = cajasQ.datos || [];
@@ -207,6 +210,7 @@ export default function Caja({ staff }) {
         }),
       ]);
       setConteo({});
+      setVerCierre(false);
       setMensaje(`${caja.nombre} cerrada.`);
       turnosQ.recargar();
     } catch (e) {
@@ -262,6 +266,10 @@ export default function Caja({ staff }) {
         </div>
       )}
 
+      {caja && turno && !verCierre && (
+        <Venta caja={caja} turno={turno} staff={staff} onVendido={pedidosQ.recargar} />
+      )}
+
       {caja && turno && (
         <>
           <div className="card">
@@ -269,7 +277,7 @@ export default function Caja({ staff }) {
             <p>Cajero: <strong>{turno.empleadoNombre || "—"}</strong></p>
             <p>Abierto: <strong>{turno.abiertoEn.toLocaleString("es-CR")}</strong></p>
             <p>Fondo inicial: <strong>{colones(fondoInicial)}</strong></p>
-            <p>Pedidos cobrados: <strong>{ventas.cantidad}</strong></p>
+            <p>Ventas cobradas: <strong>{ventas.cantidad}</strong></p>
             <p>Total vendido: <strong>{colones(ventas.totalVentas)}</strong></p>
             <table className="tabla">
               <tbody>
@@ -281,8 +289,14 @@ export default function Caja({ staff }) {
                 ))}
               </tbody>
             </table>
+            {!verCierre && (
+              <button className="btn bloque" onClick={() => setVerCierre(true)}>
+                Ir al cierre de caja
+              </button>
+            )}
           </div>
 
+          {verCierre && (
           <div className="card">
             <h3>Conteo para cerrar</h3>
             <label>
@@ -328,7 +342,11 @@ export default function Caja({ staff }) {
             <button className="btn peligro bloque" disabled={ocupado} onClick={cerrarTurno}>
               {ocupado ? "Guardando..." : `Cerrar ${caja.nombre}`}
             </button>
+            <button className="btn bloque" disabled={ocupado} onClick={() => setVerCierre(false)}>
+              Volver a vender
+            </button>
           </div>
+          )}
         </>
       )}
 
