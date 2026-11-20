@@ -6,9 +6,6 @@ import { horaCorta } from "../lib/format.js";
 const TECLAS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK"];
 
 const PUESTOS = [
-  { id: "mesero", label: "Mesero" },
-  { id: "cocina", label: "Cocina" },
-  { id: "barra", label: "Barra" },
   { id: "caja", label: "Caja" },
   { id: "admin", label: "Administrador" },
 ];
@@ -16,7 +13,7 @@ const PUESTOS = [
 const nombrePuesto = (id) => PUESTOS.find((p) => p.id === id)?.label || id || "—";
 const nombreCompleto = (e) => `${e.nombre || ""} ${e.apellidos || ""}`.trim();
 
-const FORM_VACIO = { nombre: "", apellidos: "", numero: "", puesto: "mesero", pin: "" };
+const FORM_VACIO = { nombre: "", apellidos: "", numero: "", puesto: "caja", pin: "" };
 
 // Fichaje de entrada y salida con PIN, historial y, para el admin, alta de empleados
 export default function Personal({ staff }) {
