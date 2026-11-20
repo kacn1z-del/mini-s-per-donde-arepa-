@@ -5,6 +5,7 @@ import { ROL } from "./lib/constants.js";
 import { leerDoc, usePolling } from "./lib/api.js";
 import Caja from "./pages/Caja.jsx";
 import Productos from "./pages/Productos.jsx";
+import Inventario from "./pages/Inventario.jsx";
 import Compras from "./pages/Compras.jsx";
 import Resumen from "./pages/Resumen.jsx";
 import Personal from "./pages/Personal.jsx";
@@ -17,6 +18,7 @@ const VISTAS = {
   resumen: { label: "Resumen", icono: "◔", roles: [ROL.ADMIN] },
   caja: { label: "Caja", icono: "₡", roles: [ROL.ADMIN, ROL.CAJA] },
   productos: { label: "Productos", icono: "📦", roles: [ROL.ADMIN] },
+  inventario: { label: "Inventario", icono: "▦", roles: [ROL.ADMIN] },
   compras: { label: "Compras", icono: "🧾", roles: [ROL.ADMIN] },
   listados: { label: "Listados", icono: "▤", roles: [ROL.ADMIN] },
   configuracion: { label: "Configuración", icono: "⚙", roles: [ROL.ADMIN] },
@@ -194,6 +196,7 @@ export default function App() {
           {vistaActual === "resumen" && <Resumen />}
           {vistaActual === "caja" && <Caja staff={staff} />}
           {vistaActual === "productos" && <Productos />}
+          {vistaActual === "inventario" && <Inventario staff={staff} />}
           {vistaActual === "compras" && <Compras staff={staff} />}
           {vistaActual === "listados" && <Listados />}
           {vistaActual === "configuracion" && <Configuracion />}
